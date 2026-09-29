@@ -8,9 +8,9 @@ class ApiService {
   // For Android Emulator: use 10.0.2.2:8000
   // For Physical Device (USB): use "http://localhost:8000" with: adb reverse tcp:8000 tcp:8000
   // For Physical Device (WiFi): use your PC's LAN IP, e.g. "http://192.168.1.5:8000"
-  static const String baseUrl = kIsWeb
-      ? "http://localhost:8000"
-      : "http://localhost:8000";
+static const String baseUrl = kIsWeb
+    ? "http://localhost:8000"
+    : "http://10.74.223.118:8000";
   
   static String? _token;
 

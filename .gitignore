@@ -1,6 +1,27 @@
+# Python
 venv/
-.env
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Environment
+.env
+
+# Flutter
+ai_farmer_assistant/build/
+ai_farmer_assistant/.dart_tool/
+
+# Android
+ai_farmer_assistant/android/.gradle/
+ai_farmer_assistant/android/local.properties
+
+# IDE
 .idea/
 .vscode/
+
+# Vercel
+.vercel/
+
+# Uploads
+uploads/*
