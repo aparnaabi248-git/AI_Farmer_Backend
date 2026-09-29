@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "764371351814",
+    "project_id": "ai-farmer-assistant-116e8",
+    "storage_bucket": "ai-farmer-assistant-116e8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:764371351814:android:65dbe8c56d9e7a883b4687",
+        "android_client_info": {
+          "package_name": "com.example.ai_farmer_assistant"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB-m7VSaZpLD7duRtxjqQBkJFVgZguyu_Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
