@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,8 +10,8 @@ class ApiService {
   // For Physical Device (USB): use "http://localhost:8000" with: adb reverse tcp:8000 tcp:8000
   // For Physical Device (WiFi): use your PC's LAN IP, e.g. "http://192.168.1.5:8000"
 static const String baseUrl = kIsWeb
-    ? "http://localhost:8000"
-    : "http://10.74.223.118:8000";
+    ? "https://ai-farmer-backend.vercel.app"
+    : "https://ai-farmer-backend.vercel.app";
   
   static String? _token;
 
@@ -45,8 +46,8 @@ static const String baseUrl = kIsWeb
     return headers;
   }
 
-  // Timeout duration for all requests
-  static const Duration _timeout = Duration(seconds: 15);
+  // Timeout duration for all requests (60s for uploads)
+  static const Duration _timeout = Duration(seconds: 60);
 
   // Turn low-level network errors into a message the user can act on.
   static String friendlyError(Object e) {
@@ -63,6 +64,20 @@ static const String baseUrl = kIsWeb
       return "The server took too long to respond. Please try again.";
     }
     return text;
+  }
+
+  /// Safely decode a JSON response body. If the body is not valid JSON
+  /// (e.g. an HTML error page from Vercel), return a map with "detail"
+  /// describing the problem instead of throwing a FormatException.
+  static Map<String, dynamic> safeJsonDecode(http.Response response) {
+    try {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } catch (_) {
+      // The server returned non-JSON (HTML error page, plain text, etc.)
+      return {
+        "detail": "Server error (${response.statusCode}). Please try again later.",
+      };
+    }
   }
 
   // POST Request
@@ -86,26 +101,46 @@ static const String baseUrl = kIsWeb
     return response;
   }
 
-  // Multipart POST (for uploading files in a platform-agnostic way)
+  // Multipart POST — compresses image before uploading so it always fits
+  // within Vercel's 4.5 MB body limit, no matter how large the original photo is.
   static Future<http.Response> uploadFile(String endpoint, XFile file, {bool useAuth = true}) async {
     final url = Uri.parse("$baseUrl$endpoint");
     final request = http.MultipartRequest("POST", url);
-    
+
     // Add auth headers
     if (useAuth && _token != null) {
       request.headers["Authorization"] = "Bearer $_token";
     }
-    
-    // Read file bytes dynamically
-    final bytes = await file.readAsBytes();
+    // Tell the server we want JSON back, not HTML
+    request.headers["Accept"] = "application/json";
+
+    late List<int> bytes;
+
+    if (kIsWeb) {
+      // Web: no flutter_image_compress support — send raw bytes
+      bytes = await file.readAsBytes();
+    } else {
+      // Mobile/Desktop: compress to JPEG, max 1280px, quality 70
+      // This reliably keeps the upload under Vercel's 4.5 MB body limit,
+      // even for 50MP+ phone cameras.
+      final compressed = await FlutterImageCompress.compressWithList(
+        await file.readAsBytes(),
+        minWidth: 1280,
+        minHeight: 1280,
+        quality: 70,
+        format: CompressFormat.jpeg,
+      );
+      bytes = compressed;
+    }
+
     final multipartFile = http.MultipartFile.fromBytes(
       "file",
       bytes,
-      filename: file.name,
+      filename: kIsWeb ? file.name : "${file.name.split('.').first}.jpg",
     );
     request.files.add(multipartFile);
-    
-    final streamedResponse = await request.send();
+
+    final streamedResponse = await request.send().timeout(_timeout);
     return await http.Response.fromStream(streamedResponse);
   }
 }

@@ -1,4 +1,4 @@
-import 'dart:convert';
+// dart:convert is handled via ApiService.safeJsonDecode
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -57,22 +57,36 @@ class _CameraScreenState extends State<CameraScreen> {
       final response = await ApiService.uploadFile("/scans/analyze", selectedImage!);
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final data = ApiService.safeJsonDecode(response);
         if (!mounted) return;
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DiseaseResultScreen(
-              image: selectedImage!,
-              diseaseData: data,
+        // If safeJsonDecode returned a fallback error, don't navigate
+        if (data.containsKey("disease")) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DiseaseResultScreen(
+                image: selectedImage!,
+                diseaseData: data,
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data["detail"] ?? "Analysis failed. Please try again.")),
+          );
+        }
       } else {
-        final data = jsonDecode(response.body);
+        final data = ApiService.safeJsonDecode(response);
         if (!mounted) return;
+
+        String errorMsg;
+        if (response.statusCode == 413) {
+          errorMsg = "Image is too large. Please use a smaller image or lower camera resolution.";
+        } else {
+          errorMsg = data["detail"] ?? "Analysis failed (${response.statusCode}). Please try again.";
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data["detail"] ?? "Analysis failed. please try again.")),
+          SnackBar(content: Text(errorMsg)),
         );
       }
     } catch (e) {
