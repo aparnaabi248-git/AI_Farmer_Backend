@@ -10,6 +10,5 @@ bcrypt
 pydantic
 email-validator
 Pillow
-opencv-python
 numpy
 requests
