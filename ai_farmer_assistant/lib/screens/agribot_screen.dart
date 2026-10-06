@@ -39,6 +39,7 @@ class _AgriBotScreenState extends State<AgriBotScreen> {
       final response = await ApiService.get("/bot/history");
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
+        if (!mounted) return;
         setState(() {
           messages.clear();
           for (var item in data) {
@@ -62,9 +63,11 @@ class _AgriBotScreenState extends State<AgriBotScreen> {
         SnackBar(content: Text("Error loading chat history: $e")),
       );
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -113,9 +116,11 @@ class _AgriBotScreenState extends State<AgriBotScreen> {
         SnackBar(content: Text("Network error: $e")),
       );
     } finally {
-      setState(() {
-        isSending = false;
-      });
+      if (mounted) {
+        setState(() {
+          isSending = false;
+        });
+      }
     }
   }
 

@@ -43,6 +43,10 @@ def home():
         "api_docs": "/docs"
     }
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
 @app.get("/test-db")
 def test_db():
     try:

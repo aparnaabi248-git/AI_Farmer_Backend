@@ -1,0 +1,6 @@
+gradle.projectsEvaluated {
+    rootProject.allprojects { project ->
+        def projectName = project.path == ':' ? 'root' : project.path.substring(1).replace(':', '_')
+        project.layout.buildDirectory.set(new File('D:/AI_Farmer_Backend_ApkBuild/' + projectName))
+    }
+}

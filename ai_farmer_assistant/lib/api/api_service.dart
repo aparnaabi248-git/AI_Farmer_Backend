@@ -2,23 +2,60 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart' as http;
-import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  // For Android Emulator: use 10.0.2.2:8000
-  // For Physical Device (USB): use "http://localhost:8000" with: adb reverse tcp:8000 tcp:8000
-  // For Physical Device (WiFi): use your PC's LAN IP, e.g. "http://192.168.1.5:8000"
-static const String baseUrl = kIsWeb
-    ? "https://ai-farmer-backend.vercel.app"
-    : "https://ai-farmer-backend.vercel.app";
-  
+  /// Backend base URL.
+  ///
+  /// Defaults to the deployed backend so release builds work anywhere.
+  /// Override at build time for local development:
+  ///
+  ///   flutter run --dart-define=API_URL=http://10.0.2.2:8000   # emulator
+  ///   flutter run --dart-define=API_URL=http://192.168.1.5:8000 # WiFi device
+  ///
+  /// On a USB device also run: adb reverse tcp:8000 tcp:8000
+  /// and use http://localhost:8000
+  static const String _buildTimeUrl =
+      String.fromEnvironment("API_URL", defaultValue: "");
+
+  static const String _fallbackUrl = "https://ai-farmer-backend.vercel.app";
+
+  static String? _overrideUrl;
+  static bool _overrideLoaded = false;
+
   static String? _token;
+
+  static String get baseUrl {
+    final url = (_overrideUrl != null && _overrideUrl!.isNotEmpty)
+        ? _overrideUrl!
+        : (_buildTimeUrl.isNotEmpty ? _buildTimeUrl : _fallbackUrl);
+    return url.endsWith("/")
+        ? url.substring(0, url.length - 1)
+        : url;
+  }
+
+  static Future<void> setBaseUrl(String url) async {
+    final cleaned = url.trim();
+    _overrideUrl = cleaned.isEmpty ? null : cleaned;
+    _overrideLoaded = true;
+    final prefs = await SharedPreferences.getInstance();
+    if (cleaned.isEmpty) {
+      await prefs.remove("api_base_url");
+    } else {
+      await prefs.setString("api_base_url", cleaned);
+    }
+  }
 
   // Initialize and load saved JWT token from SharedPreferences
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString("jwt_token");
+
+    // A URL set by the user in Settings wins over the build-time default.
+    if (!_overrideLoaded) {
+      _overrideUrl = prefs.getString("api_base_url");
+      _overrideLoaded = true;
+    }
   }
 
   static String? get token => _token;
@@ -55,10 +92,17 @@ static const String baseUrl = kIsWeb
     if (text.contains("SocketException") ||
         text.contains("Connection refused") ||
         text.contains("Failed host lookup")) {
-      return "Cannot reach the server.\n\n"
-          "Fix: make sure the backend is running on port 8000, then run:\n"
-          "adb reverse tcp:8000 tcp:8000\n\n"
-          "(This resets every time you unplug the USB cable.)";
+      final isLocal = baseUrl.contains("localhost") ||
+          baseUrl.contains("127.0.0.1") ||
+          baseUrl.contains("10.0.2.2");
+      if (isLocal) {
+        return "Cannot reach your local backend.\n\n"
+            "1. Make sure it is running on port 8000.\n"
+            "2. On a USB device run: adb reverse tcp:8000 tcp:8000\n\n"
+            "(This resets every time you unplug the USB cable.)";
+      }
+      return "Cannot reach $baseUrl\n\n"
+          "Check your internet connection, then try again.";
     }
     if (text.contains("TimeoutException")) {
       return "The server took too long to respond. Please try again.";
