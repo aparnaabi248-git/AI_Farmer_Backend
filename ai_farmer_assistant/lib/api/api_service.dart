@@ -167,20 +167,30 @@ class ApiService {
       // Mobile/Desktop: compress to JPEG, max 1280px, quality 70
       // This reliably keeps the upload under Vercel's 4.5 MB body limit,
       // even for 50MP+ phone cameras.
-      final compressed = await FlutterImageCompress.compressWithList(
-        await file.readAsBytes(),
-        minWidth: 1280,
-        minHeight: 1280,
-        quality: 70,
-        format: CompressFormat.jpeg,
-      );
-      bytes = compressed;
+      try {
+        final compressed = await FlutterImageCompress.compressWithList(
+          await file.readAsBytes(),
+          minWidth: 1280,
+          minHeight: 1280,
+          quality: 70,
+          format: CompressFormat.jpeg,
+        );
+        bytes = compressed;
+      } catch (e) {
+        // If compression fails (e.g. HEIC, WebP, or corrupted file),
+        // fall back to sending the raw bytes — the server will still
+        // attempt to process them.
+        bytes = await file.readAsBytes();
+      }
     }
 
+    // Always use a clean .jpg filename — gallery images often have
+    // no extension, multiple dots, or unusual names that break the
+    // server-side extension check.
     final multipartFile = http.MultipartFile.fromBytes(
       "file",
       bytes,
-      filename: kIsWeb ? file.name : "${file.name.split('.').first}.jpg",
+      filename: "plant_photo.jpg",
     );
     request.files.add(multipartFile);
 

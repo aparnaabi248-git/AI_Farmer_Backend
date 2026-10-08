@@ -254,7 +254,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> with SingleTickerPr
                             ),
                             const SizedBox(height: 12),
                             DropdownButtonFormField<String>(
-                              initialValue: selectedSoil,
+                              value: selectedSoil,
                               decoration: InputDecoration(
                                 labelText: "Soil Type",
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
