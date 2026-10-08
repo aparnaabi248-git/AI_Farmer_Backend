@@ -12,3 +12,4 @@ email-validator
 Pillow
 numpy
 requests
+google-genai
