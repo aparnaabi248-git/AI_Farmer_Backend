@@ -1,4 +1,3 @@
-
 import io
 import os
 import json
@@ -28,7 +27,7 @@ router = APIRouter(
 )
 
 # Use one model per request to avoid long fallback chains.
-GEMINI_MODEL = "gemini-3.8-flash"
+GEMINI_MODEL = "gemini-2.5-flash-lite"
 GEMINI_TIMEOUT_MS = 45000
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
